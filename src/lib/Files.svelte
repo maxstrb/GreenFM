@@ -1,68 +1,70 @@
 <script>
   import { invoke } from "@tauri-apps/api/tauri";
 
-  let files = [];
-  const default_path = "F:\\";
+  let files_in_current_folder = [];
+  let current_path = "F:\\";
 
-  let current_path = default_path;
-
-  function goToPath(path = default_path) {
-    invoke("files", { path_str: path }).then((message) => {
+  function getFiles(path = current_path) {
+    invoke("get_files", { path_str: path }).then((message) => {
       current_path = path;
-      files = message;
-      console.log(path);
+      files_in_current_folder = message;
     });
   }
 
-  function cmd(path = current_path) {
+  function openInCmd(path = current_path) {
     invoke("open_cmd", { path_str: path });
   }
 
-  goToPath();
+  async function parentDir(path = current_path) {
+    let output = "";
+
+    await invoke("get_parent_dir", { path_str: path }).then((message) => {
+      output = message;
+    });
+
+    return output;
+  }
+
+  getFiles();
 </script>
 
 <div>
-  <p>{current_path}</p>
-  <p>{current_path.split("\\").slice(0, -1).join("\\") + "\\"}</p>
+  <p>Now in: {current_path}</p>
   <button
-    class="cmd_button"
     on:click={() => {
-      cmd(current_path);
-    }}>Current cmd</button
+      parentDir(current_path).then((message) => {
+        getFiles(message);
+      });
+    }}>Back button</button
   >
-  <button
-    class="primary_button"
-    on:click={() =>
-      goToPath(current_path.split("\\").slice(0, -1).join("\\")) + "\\"}
-    >Previous folder</button
-  >
-
-  <div id="files">
-    {#each files as f}
-      <div class="display_buttons">
-        <button class="primary_button" on:click={() => goToPath(f)}>{f}</button>
+  <div id="file_section">
+    {#each files_in_current_folder as file}
+      <div class="file_buttons">
         <button
-          class="cmd_button"
+          class="path_button"
           on:click={() => {
-            cmd(f);
-          }}>cmd</button
+            getFiles(file[0]);
+          }}>{file[0]}</button
         >
+        {#if file[1]}
+          <button on:click={() => openInCmd(file)}>cmd</button>
+        {/if}
       </div>
     {/each}
   </div>
 </div>
 
 <style>
-  #files {
+  #file_section {
     display: flex;
     flex-direction: column;
   }
 
-  .display_buttons {
+  .file_buttons {
     display: flex;
   }
 
-  .primary_button {
+  .path_button {
     background-color: var(--primary);
   }
 </style>
