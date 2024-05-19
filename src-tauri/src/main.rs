@@ -3,28 +3,33 @@ use open::that;
 use std::fs;
 use std::path::Path;
 use std::process::Command;
+use std::thread;
 
 #[tauri::command(rename_all = "snake_case")]
-fn get_files(path_str: &str) -> Result<Vec<(String, bool)>, String> {
+fn get_files(path_str: &str) -> Result<(Vec<(String, bool)>, &str), &str> {
     let current_path = Path::new(path_str);
 
     if !current_path.exists() {
-        return Err(String::from("This path is invalid"));
+        return Err("This path is invalid");
     }
 
     if current_path.is_dir() {
-        let output: Vec<(String, bool)> = fs::read_dir(current_path)
-            .unwrap()
-            .filter(|f| f.as_ref().unwrap().path().is_file() || f.as_ref().unwrap().path().is_dir())
-            .map(|f| {
-                (
-                    String::from(f.as_ref().unwrap().path().to_str().unwrap()),
-                    f.as_ref().unwrap().path().is_dir(),
-                )
-            })
-            .collect();
+        if let Ok(path_unwrap) = fs::read_dir(current_path) {
+            let output = path_unwrap
+                .filter(|f| {
+                    f.as_ref().unwrap().path().is_file() || f.as_ref().unwrap().path().is_dir()
+                })
+                .map(|f| {
+                    (
+                        String::from(f.as_ref().unwrap().path().to_str().unwrap()),
+                        f.as_ref().unwrap().path().is_dir(),
+                    )
+                })
+                .collect::<Vec<(String, bool)>>();
+            return Ok((output, path_str));
+        }
 
-        return Ok(output);
+        return Err("Inaccesible dir!");
     }
 
     let _ = open_file(path_str);
@@ -33,11 +38,14 @@ fn get_files(path_str: &str) -> Result<Vec<(String, bool)>, String> {
 
 #[tauri::command(rename_all = "snake_case")]
 fn open_cmd(path_str: &str) {
-    Command::new("cmd")
-        .args(["/C", "start", "cmd"])
-        .current_dir(path_str)
-        .output()
-        .expect("failed to execute process");
+    let pth = String::from(path_str);
+    thread::spawn(|| {
+        Command::new("cmd")
+            .args(["/C", "start", "cmd"])
+            .current_dir(pth)
+            .output()
+            .expect("REEE")
+    });
 }
 
 #[tauri::command(rename_all = "snake_case")]
@@ -47,7 +55,11 @@ fn get_parent_dir(path_str: &str) -> String {
         return String::from("C:\\");
     }
 
-    return String::from(current_path.parent().unwrap().to_str().unwrap());
+    if let Some(parent) = current_path.parent() {
+        return String::from(parent.to_str().unwrap());
+    }
+
+    return String::from(path_str);
 }
 
 fn open_file(file_path: &str) -> Result<(), Box<dyn std::error::Error>> {

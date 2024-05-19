@@ -4,8 +4,8 @@
   line-height: 24px;
   font-weight: 400;
 
-  color: #dde4fe;
-  background-color: #010416;
+  color: #e9eae7;
+  background-color: #11130f;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -13,7 +13,7 @@
   -moz-osx-font-smoothing: grayscale;
   -webkit-text-size-adjust: 100%;
 
-  --primary: #7d97fa;
-  --secondary: #a90678;
-  --accent: #f83976;
+  --primary: #113400;
+  --secondary: #3b8416;
+  --accent: #6dec2e;
 }
