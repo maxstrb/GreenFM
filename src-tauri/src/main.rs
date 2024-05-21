@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use std::process::Command;
 use std::sync::Mutex;
 use std::thread;
-use tauri::{Manager, State, Window};
+use tauri::{State, Window};
 
 struct CurrentDirectory(Mutex<PathBuf>);
 
@@ -189,22 +189,8 @@ fn check_path_state(path: &PathBuf) -> Result<PathState, ()> {
 
 fn main() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_context_menu::init())
         .manage(CurrentDirectory(Mutex::new("C:\\".into())))
-        .setup(|app| {
-            // `main` here is the window label; it is defined on the window creation or under `tauri.conf.json`
-            // the default value is `main`. note that it must be unique
-            let main_window = app.get_window("main").unwrap();
-
-            main_window
-                .emit(
-                    "path_changed",
-                    Payload {
-                        message: "C:\\".into(),
-                    },
-                )
-                .unwrap();
-            Ok(())
-        })
         .invoke_handler(tauri::generate_handler![
             load_files_in_current_directory,
             get_ancestors,
