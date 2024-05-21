@@ -50,7 +50,7 @@
 
 <style>
   #files_main {
-    background-color: #2e2e2e;
+    background-color: #444444;
   }
 
   .center {

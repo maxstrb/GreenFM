@@ -1,21 +1,12 @@
 :root {
-  font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
-  font-size: 16px;
-  line-height: 24px;
-  font-weight: 400;
-
-  color: #e9eae7;
-  background-color: #11130f;
+  color: #FFFFFF;
+  background-color: #2E2E2E;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   -webkit-text-size-adjust: 100%;
-
-  --primary: background: #444444;
-  --secondary: #3b8416;
-  --accent: #6dec2e;
 }
 
 body {
