@@ -1,75 +1,71 @@
 <script>
-  import { invoke } from "@tauri-apps/api/tauri";
-  import { message } from "@tauri-apps/api/dialog";
+  import {
+    updateFilesInFolder,
+    changeCurrentDirectory,
+    openFile,
+    openCommandLine,
+  } from "./RustApi.js";
+
+  import { listen } from "@tauri-apps/api/event";
 
   let files_in_current_folder = [];
-  let current_path = "F:\\";
 
-  function getFiles(path = current_path) {
-    invoke("get_files", { path_str: path })
-      .then((rs_output) => {
-        current_path = rs_output[1];
-        files_in_current_folder = rs_output[0];
-      })
-      .catch((err) => {
-        message(err, { title: "Green FM", type: "error" });
-      });
+  function changeDirectory(path) {
+    changeCurrentDirectory(path);
   }
 
-  async function openInCmd(path = current_path) {
-    await invoke("open_cmd", { path_str: path });
-  }
+  //#region Updating files
+  const _filesChanged = listen("path_changed", (_) => {
+    updateFiles();
+  });
 
-  async function parentDir(path = current_path) {
-    let output = "";
-
-    await invoke("get_parent_dir", { path_str: path }).then((rs_output) => {
-      output = rs_output;
+  function updateFiles() {
+    updateFilesInFolder().then((message) => {
+      files_in_current_folder = message;
     });
-
-    return output;
   }
 
-  getFiles();
+  updateFiles();
+  //#endregion
 </script>
 
-<div>
-  <p>Now in: {current_path}</p>
-  <button
-    on:click={() => {
-      parentDir(current_path).then((rs_output) => {
-        getFiles(rs_output);
-      });
-    }}>Back button</button
-  >
-  <div id="file_section">
-    {#each files_in_current_folder as file}
-      <div class="file_buttons">
-        <button
-          class="path_button"
-          on:click={() => {
-            getFiles(file[0]);
-          }}>{file[0]}</button
+<div id="files_main">
+  {#each files_in_current_folder as file}
+    {#if file[1]}
+      <div class="center">
+        <button class="folder_button" on:click={() => changeDirectory(file[0])}
+          >{file[0]}</button
         >
-        {#if file[1]}
-          <button on:click={() => openInCmd(file[0])}>cmd</button>
-        {/if}
       </div>
-    {/each}
-  </div>
+    {/if}
+    {#if !file[1]}
+      <div class="center">
+        <button class="file_button" on:click={() => openFile(file[0])}
+          >{file[0]}</button
+        >
+      </div>
+    {/if}
+  {/each}
 </div>
 
 <style>
-  #file_section {
-    display: flex;
-    flex-direction: column;
+  #files_main {
+    background-color: #2e2e2e;
   }
 
-  .file_buttons {
+  .center {
     display: flex;
+    justify-content: center;
   }
 
-  .path_button {
-    background-color: var(--primary);
+  .folder_button {
+    text-align: left;
+    width: 90%;
+    border: none;
+    background-color: inherit;
+    padding: 14px 28px;
+    font-size: 16px;
+    cursor: pointer;
+    display: inline-block;
   }
 </style>

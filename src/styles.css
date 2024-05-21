@@ -13,7 +13,12 @@
   -moz-osx-font-smoothing: grayscale;
   -webkit-text-size-adjust: 100%;
 
-  --primary: #113400;
+  --primary: background: #444444;
   --secondary: #3b8416;
   --accent: #6dec2e;
+}
+
+body {
+  margin: 0;
+  border: 0;
 }
