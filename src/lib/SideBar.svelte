@@ -5,13 +5,16 @@
 <style>
     #main_side {
         position: fixed;
-        top: 28px;
+        top: 32px;
         left: 0;
 
-        height: calc(100vh - 28px);
+        height: calc(100% - 68px);
+        width: 200px;
 
-        width: 20%;
+        display: flex;
+        flex-direction: column;
+
         background-color: #444444;
-        border-top: 11px solid #35ad5e;
+        border-top: 8px solid #35ad5e;
     }
 </style>

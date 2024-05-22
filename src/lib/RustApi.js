@@ -13,6 +13,10 @@ export function openFile(path) {
     invoke("open_file", { file_path: path })
 }
 
+export function openCmd(path) {
+    invoke("open_cmd", { folder_path: path })
+}
+
 export function setCurrentDirectory(path) {
     invoke("set_current_directory", { new_path: path });
 }
@@ -36,9 +40,12 @@ export async function parentDir(){
 }
 
 export async function getCurrentDirectory(){
+    let cd = "C:\\"
     await invoke("get_current_directory").then(
-        (message) => {return message;}
+        (message) => {cd = message;}
     )
+
+    return cd;
 }
 
 export async function showMenu(e, items){

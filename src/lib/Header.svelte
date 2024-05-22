@@ -1,51 +1,32 @@
 <script>
-    import { setCurrentDirectory, getAncestors, parentDir } from "./RustApi.js";
-    import { listen } from "@tauri-apps/api/event";
-
+    import { cli } from "@tauri-apps/api";
+    import { setCurrentDirectory, parentDir } from "./RustApi.js";
+    import { emit } from "@tauri-apps/api/event";
     let breadcrums = [];
 
-    async function Back() {
+    async function back() {
         await parentDir().then((message) => {
             setCurrentDirectory(message);
         });
     }
 
-    function updateBreadcrums() {
-        getAncestors().then((anc) => {
-            breadcrums = anc;
-        });
+    function reload() {
+        emit("path_changed");
     }
-
-    function setBread(crum) {
-        setCurrentDirectory(crum[0]);
-    }
-
-    listen("path_changed", (_) => {
-        updateBreadcrums();
-    });
-    updateBreadcrums();
 </script>
 
 <div id="header_div">
-    <button on:click={Back}>↶</button>
-    <div id="breadcrums">
-        {#each breadcrums as crum}
-            <button class="bread" on:click={() => setBread(crum)}
-                >{crum[1]}</button
-            >
-        {/each}
+    <div id="buttons">
+        <button on:click={back}>↶</button>
+        <button on:click={reload}>↻</button>
+        <button>•••</button>
     </div>
 </div>
 
 <style>
-    #breadcrums {
+    #buttons {
         display: flex;
-    }
-
-    .bread {
-        border: none;
-        padding: 0;
-        margin: 0;
+        justify-content: space-around;
     }
 
     #header_div {
@@ -55,7 +36,7 @@
         display: flex;
         background-color: #2c392f;
         border-bottom: 1px black solid;
-        width: 100vw;
-        height: 28px;
+        width: 100%;
+        height: 32px;
     }
 </style>

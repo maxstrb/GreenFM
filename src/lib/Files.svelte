@@ -108,7 +108,7 @@
 
     padding: 1px 0px 1px 4px;
     margin: 1px;
-    width: 95%;
+    width: calc(100% - 10px);
 
     text-align: left;
     font-size: 16px;

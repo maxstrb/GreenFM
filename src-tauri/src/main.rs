@@ -30,16 +30,12 @@ fn set_current_directory(window: Window, cur_dir: State<CurrentDirectory>, new_p
         match ps {
             PathState::IsOpenDir => {
                 *dir = temp.clone();
-                let _ = window.emit(
-                    "path_changed",
-                    Payload {
-                        message: temp.to_str().unwrap().into(),
-                    },
-                );
             }
             _ => {}
         }
     }
+
+    let _ = window.emit("path_changed", Payload { message: "".into() });
 }
 
 #[tauri::command(rename_all = "snake_case")]
@@ -106,6 +102,7 @@ fn load_files_in_current_directory(
     }
 }
 
+#[tauri::command(rename_all = "snake_case")]
 fn open_cmd(folder_path: &str) {
     let pth = String::from(folder_path);
     thread::spawn(|| {
@@ -214,6 +211,7 @@ fn main() {
             open_file,
             set_current_directory,
             get_current_directory,
+            open_cmd,
         ])
         .setup(|app| {
             app.listen_global("open_cmd_from_current", move |event| {
