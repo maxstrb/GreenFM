@@ -9,36 +9,39 @@ export async function updateFilesInFolder() {
     return files;
 }
 
-export function changeCurrentDirectory(path) {
-    invoke("change_current_directory", { new_path: path });
-}
-
 export function openFile(path) {
     invoke("open_file", { file_path: path })
 }
 
 export function setCurrentDirectory(path) {
-    invoke("change_current_directory", { new_path: path });
-}
-
-export function openCommandLine(path) {
-    invoke("open_cmd", { folder_path: path });
+    invoke("set_current_directory", { new_path: path });
 }
 
 export async function getAncestors(){
-    let ancestors = [];
-    await invoke("get_ancerstos").then(
-        (message) => {ancestors = message}
+    let anc = ["C:\\"]
+    await invoke("get_ancestors").then(
+        (message) => {anc = message;}
     )
 
-    return ancestors;
+    return anc;
 }
 
 export async function parentDir(){
-    let parent = ["C:\\", "C"];
+    let parent = "C:\\";
     await invoke("get_parent_dir").then(
         (message) => {parent = message}
     )
 
     return parent;
+}
+
+export async function getCurrentDirectory(){
+    await invoke("get_current_directory").then(
+        (message) => {return message;}
+    )
+}
+
+export async function showMenu(e, items){
+    e.preventDefault(); 
+    invoke("plugin:context_menu|show_context_menu", items);
 }

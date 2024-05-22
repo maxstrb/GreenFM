@@ -6,8 +6,8 @@
     "distDir": "../dist"
   },
   "package": {
-    "productName": "greenfm",
-    "version": "0.0.0"
+    "productName": "Green FM",
+    "version": "0.0.1"
   },
   "tauri": {
     "allowlist": {
@@ -27,7 +27,7 @@
     },
     "windows": [
       {
-        "title": "greenfm",
+        "title": "Green FM",
         "width": 800,
         "height": 600
       }

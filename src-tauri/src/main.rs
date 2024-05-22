@@ -1,12 +1,13 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 use open::that;
+use std::cmp::Ordering;
 use std::fs;
 use std::io;
 use std::path::PathBuf;
 use std::process::Command;
 use std::sync::Mutex;
 use std::thread;
-use tauri::{State, Window};
+use tauri::{Manager, State, Window};
 
 struct CurrentDirectory(Mutex<PathBuf>);
 
@@ -16,24 +17,8 @@ struct Payload {
 }
 
 #[tauri::command(rename_all = "snake_case")]
-fn change_current_directory(window: Window, cur_dir: State<CurrentDirectory>, new_path: &str) {
-    let mut dir = cur_dir.0.lock().unwrap();
-    let temp = dir.join(PathBuf::from(new_path));
-
-    if let Ok(ps) = check_path_state(&temp) {
-        match ps {
-            PathState::IsOpenDir => {
-                *dir = temp.clone();
-                let _ = window.emit(
-                    "path_changed",
-                    Payload {
-                        message: temp.to_str().unwrap().into(),
-                    },
-                );
-            }
-            _ => {}
-        }
-    }
+fn get_current_directory(cur_dir: State<CurrentDirectory>) -> String {
+    return cur_dir.0.lock().unwrap().to_str().unwrap().into();
 }
 
 #[tauri::command(rename_all = "snake_case")]
@@ -60,7 +45,7 @@ fn set_current_directory(window: Window, cur_dir: State<CurrentDirectory>, new_p
 #[tauri::command(rename_all = "snake_case")]
 fn load_files_in_current_directory(
     cur_dir: State<CurrentDirectory>,
-) -> Result<Vec<(String, bool)>, String> {
+) -> Result<Vec<(String, String, bool)>, String> {
     let cd = &(*cur_dir.0.lock().unwrap());
 
     match fs::read_dir(cd) {
@@ -77,14 +62,22 @@ fn load_files_in_current_directory(
                                 PathState::IsFile => {
                                     if let Some(file_name) = path.file_name() {
                                         if let Some(file_name_str) = file_name.to_str() {
-                                            files.push((file_name_str.to_string(), false));
+                                            files.push((
+                                                file_name_str.to_string(),
+                                                entry.path().to_str().unwrap().to_string(),
+                                                false,
+                                            ));
                                         }
                                     }
                                 }
                                 PathState::IsOpenDir => {
                                     if let Some(file_name) = path.file_name() {
                                         if let Some(file_name_str) = file_name.to_str() {
-                                            files.push((file_name_str.to_string(), true));
+                                            files.push((
+                                                file_name_str.to_string(),
+                                                entry.path().to_str().unwrap().to_string(),
+                                                true,
+                                            ));
                                         }
                                     }
                                 }
@@ -96,13 +89,23 @@ fn load_files_in_current_directory(
                     Err(e) => return Err(format!("Failed to read entry: {}", e)),
                 }
             }
+
+            files.sort_by(|a, b| {
+                if a.2 == b.2 {
+                    return Ordering::Equal;
+                } else if a.2 {
+                    return Ordering::Less;
+                }
+
+                return Ordering::Greater;
+            });
+
             Ok(files)
         }
         Err(e) => Err(format!("Failed to read directory: {}", e)),
     }
 }
 
-#[tauri::command(rename_all = "snake_case")]
 fn open_cmd(folder_path: &str) {
     let pth = String::from(folder_path);
     thread::spawn(|| {
@@ -115,33 +118,45 @@ fn open_cmd(folder_path: &str) {
 }
 
 #[tauri::command(rename_all = "snake_case")]
-fn get_ancestors(cur_dir: State<CurrentDirectory>) -> Vec<String> {
-    (&(*cur_dir.0.lock().unwrap()))
+fn get_ancestors(cur_dir: State<CurrentDirectory>) -> Vec<(String, String)> {
+    let mut output: Vec<(String, String)> = (&(*cur_dir.0.lock().unwrap()))
         .ancestors()
-        .map(|f| f.to_str().unwrap().to_string())
-        .collect()
+        .map(|f| {
+            (
+                f.to_str().unwrap().to_string(),
+                if let Some(name) = f.file_name() {
+                    name.to_str().unwrap().to_string() + "\\"
+                } else {
+                    f.to_str().unwrap().to_string()
+                },
+            )
+        })
+        .collect();
+    output.reverse();
+
+    return output;
 }
 
 #[tauri::command(rename_all = "snake_case")]
 fn get_parent_dir(cur_dir: State<CurrentDirectory>) -> String {
-    let dir = get_ancestors(cur_dir.clone());
-    if dir.len() >= 2 {
-        return dir[1].clone();
+    let cur_dir_locked = cur_dir.0.lock().unwrap();
+    let dir = cur_dir_locked.parent();
+
+    if let Some(par) = dir {
+        return par.to_str().unwrap().into();
     }
 
-    let cd = &(*cur_dir.0.lock().unwrap());
-    cd.to_str().unwrap().to_string()
+    cur_dir_locked.to_str().unwrap().to_string()
 }
 
 #[tauri::command(rename_all = "snake_case")]
-fn open_file(cur_dir: State<CurrentDirectory>, file_path: &str) -> Result<(), String> {
-    let dir = cur_dir.0.lock().unwrap();
-    let file_absolute_path = dir.join(PathBuf::from(file_path));
+fn open_file(file_path: &str) -> Result<(), String> {
+    let dir = PathBuf::from(file_path);
 
-    if let Ok(ps) = check_path_state(&file_absolute_path) {
+    if let Ok(ps) = check_path_state(&dir) {
         if let PathState::IsFile = ps {
             // Try to open the file using the default application
-            if let Ok(_) = that(file_absolute_path.as_path()) {
+            if let Ok(_) = that(dir.as_path()) {
                 return Ok(());
             }
 
@@ -152,6 +167,7 @@ fn open_file(cur_dir: State<CurrentDirectory>, file_path: &str) -> Result<(), St
     Err("File does not exit".to_string())
 }
 
+#[derive(PartialEq, Debug)]
 enum PathState {
     IsClosedDir,
     IsOpenDir,
@@ -194,12 +210,19 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             load_files_in_current_directory,
             get_ancestors,
-            open_cmd,
             get_parent_dir,
             open_file,
-            change_current_directory,
             set_current_directory,
+            get_current_directory,
         ])
+        .setup(|app| {
+            app.listen_global("open_cmd_from_current", move |event| {
+                if let Some(payload) = event.payload() {
+                    open_cmd(payload.trim_matches('"'));
+                }
+            });
+            Ok(())
+        })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

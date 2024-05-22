@@ -1,21 +1,32 @@
 <script>
   import {
     updateFilesInFolder,
-    changeCurrentDirectory,
+    setCurrentDirectory,
     openFile,
-    openCommandLine,
+    showMenu,
   } from "./RustApi.js";
 
-  import { listen } from "@tauri-apps/api/event";
+  import { listen, emit } from "@tauri-apps/api/event";
 
   let files_in_current_folder = [];
 
-  function changeDirectory(path) {
-    changeCurrentDirectory(path);
+  let current_button = ["", "", false];
+
+  function set_button(file) {
+    current_button = file;
   }
 
-  //#region Updating files
-  const _filesChanged = listen("path_changed", (_) => {
+  function reset_button(file) {
+    if (current_button == file) {
+      current_button = ["", "", false];
+    }
+  }
+
+  function changeDirectory(path) {
+    setCurrentDirectory(path);
+  }
+
+  listen("path_changed", (_) => {
     updateFiles();
   });
 
@@ -25,23 +36,54 @@
     });
   }
 
+  function createItems() {
+    if (current_button[0] == null || current_button[0] == "") {
+      return { items: [] };
+    } else if (current_button[1]) {
+      return {
+        items: [
+          {
+            label: "Open in cmd",
+            event: "open_cmd",
+            payload: current_button[1],
+          },
+        ],
+      };
+    }
+
+    return { items: [] };
+  }
+
+  window.addEventListener("contextmenu", async (e) => {
+    showMenu(e, createItems());
+  });
+
+  listen("open_cmd", (event) => {
+    emit("open_cmd_from_current", event.payload);
+  });
+
   updateFiles();
-  //#endregion
 </script>
 
 <div id="files_main">
   {#each files_in_current_folder as file}
-    {#if file[1]}
+    {#if file[2]}
       <div class="center">
-        <button class="folder_button" on:click={() => changeDirectory(file[0])}
-          >{file[0]}</button
+        <button
+          class="folder_button"
+          on:mouseleave={() => reset_button(file)}
+          on:mouseenter={() => set_button(file)}
+          on:click={() => changeDirectory(file[1])}>{file[0]}</button
         >
       </div>
     {/if}
-    {#if !file[1]}
+    {#if !file[2]}
       <div class="center">
-        <button class="file_button" on:click={() => openFile(file[0])}
-          >{file[0]}</button
+        <button
+          class="file_button"
+          on:mouseleave={() => reset_button(file)}
+          on:mouseenter={() => set_button(file)}
+          on:click={() => openFile(file[1])}>{file[0]}</button
         >
       </div>
     {/if}
@@ -50,7 +92,8 @@
 
 <style>
   #files_main {
-    background-color: #444444;
+    background-color: #2e2e2e;
+    width: 100%;
   }
 
   .center {
@@ -59,12 +102,17 @@
   }
 
   .folder_button {
+    color: #ffffff;
+    background-color: #444444;
+    border: 1px solid #595959;
+
+    padding: 1px 0px 1px 4px;
+    margin: 1px;
+    width: 95%;
+
     text-align: left;
-    width: 90%;
-    border: none;
-    background-color: inherit;
-    padding: 14px 28px;
     font-size: 16px;
+
     cursor: pointer;
     display: inline-block;
   }
