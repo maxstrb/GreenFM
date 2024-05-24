@@ -40,7 +40,7 @@ export async function parentDir(){
 }
 
 export async function getCurrentDirectory(){
-    let cd = "C:\\"
+    let cd = "C:\\";
     await invoke("get_current_directory").then(
         (message) => {cd = message;}
     )
@@ -51,4 +51,13 @@ export async function getCurrentDirectory(){
 export async function showMenu(e, items){
     e.preventDefault(); 
     invoke("plugin:context_menu|show_context_menu", items);
+}
+
+export async function getDisks(){
+    let disks = [["C:\\", "Local Disk(C:\\)"]];
+    await invoke("get_all_disks").then(
+        (message) => {disks = message;}
+    )
+
+    return disks;
 }

@@ -11,7 +11,7 @@
     }
 
     function reload() {
-        emit("path_changed");
+        emit("reload");
     }
 </script>
 
@@ -30,13 +30,15 @@
     }
 
     #header_div {
+        z-index: 0;
         top: 0;
         left: 0;
         position: fixed;
         display: flex;
         background-color: #2c392f;
-        border-bottom: 1px black solid;
         width: 100%;
         height: 32px;
+
+        border-bottom: #131313 1px solid;
     }
 </style>

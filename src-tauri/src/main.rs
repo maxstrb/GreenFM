@@ -7,9 +7,55 @@ use std::path::PathBuf;
 use std::process::Command;
 use std::sync::Mutex;
 use std::thread;
+use sysinfo::Disks;
 use tauri::{Manager, State, Window};
 
+use serde::{Deserialize, Serialize};
+use serde_json::from_str;
+use serde_json::to_string;
+use std::fs::read_to_string;
+use std::fs::File;
+use std::io::Write;
+
 struct CurrentDirectory(Mutex<PathBuf>);
+
+#[derive(Serialize, Deserialize, Debug)]
+struct FavouritePath(String, String);
+
+fn save_to_file(vec: &Vec<FavouritePath>, filename: &str) {
+    let json = to_string(vec).expect("Failed to serialize");
+    let mut file = File::create(filename).unwrap();
+    file.write_all(json.as_bytes());
+}
+
+fn load_from_file(filename: &str) -> Vec<(String, String)> {
+    let json = read_to_string(filename).unwrap();
+    let vec: Vec<FavouritePath> = from_str(&json).expect("Failed to deserialize");
+
+    vec.into_iter().map(|f| (f.0, f.1)).collect()
+}
+
+fn remove_from_file<F>(filename: &str, predicate: F)
+where
+    F: Fn(&FavouritePath) -> bool,
+{
+    // Load the existing data
+    let vec = load_from_file(filename);
+
+    let mut vec_path = vec
+        .iter()
+        .map(|f| FavouritePath {
+            0: f.clone().0,
+            1: f.clone().1,
+        })
+        .collect::<Vec<FavouritePath>>();
+
+    // Remove elements that match the predicate
+    vec_path.retain(|x| !predicate(x));
+
+    // Save the updated vector back to the file
+    save_to_file(&vec_path, filename);
+}
 
 #[derive(Clone, serde::Serialize)]
 struct Payload {
@@ -19,6 +65,27 @@ struct Payload {
 #[tauri::command(rename_all = "snake_case")]
 fn get_current_directory(cur_dir: State<CurrentDirectory>) -> String {
     return cur_dir.0.lock().unwrap().to_str().unwrap().into();
+}
+
+#[tauri::command(rename_all = "snake_case")]
+fn get_all_disks() -> Vec<(String, String)> {
+    let disks = Disks::new_with_refreshed_list();
+
+    disks
+        .iter()
+        .map(|disk| {
+            let name_not_done = disk.name().to_str().unwrap();
+            let path = disk.mount_point().to_str().unwrap();
+
+            let name = if name_not_done == "" {
+                "Local Disk"
+            } else {
+                &name_not_done
+            };
+
+            (path.to_string(), name.to_string() + " (" + path + ")")
+        })
+        .collect()
 }
 
 #[tauri::command(rename_all = "snake_case")]
@@ -212,6 +279,7 @@ fn main() {
             set_current_directory,
             get_current_directory,
             open_cmd,
+            get_all_disks,
         ])
         .setup(|app| {
             app.listen_global("open_cmd_from_current", move |event| {

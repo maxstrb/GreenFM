@@ -30,6 +30,10 @@
     updateFiles();
   });
 
+  listen("reload", (_) => {
+    updateFiles();
+  });
+
   function updateFiles() {
     updateFilesInFolder().then((message) => {
       files_in_current_folder = message;
@@ -73,7 +77,9 @@
           class="folder_button"
           on:mouseleave={() => reset_button(file)}
           on:mouseenter={() => set_button(file)}
-          on:click={() => changeDirectory(file[1])}>{file[0]}</button
+          on:click={() => changeDirectory(file[1])}
+          ><img src="/folder.svg" alt="folder" width="16px" height="16px" />
+          {file[0]}</button
         >
       </div>
     {/if}
@@ -83,7 +89,9 @@
           class="file_button"
           on:mouseleave={() => reset_button(file)}
           on:mouseenter={() => set_button(file)}
-          on:click={() => openFile(file[1])}>{file[0]}</button
+          on:click={() => openFile(file[1])}
+          ><img src="/file.svg" alt="folder" width="16px" height="16px" />
+          {file[0]}</button
         >
       </div>
     {/if}
@@ -101,13 +109,16 @@
     justify-content: center;
   }
 
-  .folder_button {
+  .file_button {
     color: #ffffff;
-    background-color: #444444;
-    border: 1px solid #595959;
+    background-color: inherit;
+    border: none;
 
-    padding: 1px 0px 1px 4px;
-    margin: 1px;
+    margin-top: 2px;
+    margin-bottom: 2px;
+    margin-left: 2px;
+
+    padding: 0;
     width: calc(100% - 10px);
 
     text-align: left;
@@ -115,5 +126,42 @@
 
     cursor: pointer;
     display: inline-block;
+  }
+
+  .file_button:hover {
+    background-color: #444444;
+    border: 1px solid #595959;
+
+    margin-top: 1px;
+    margin-bottom: 1px;
+    margin-left: 0px;
+  }
+
+  .folder_button {
+    color: #ffffff;
+    background-color: inherit;
+    border: none;
+
+    margin-top: 2px;
+    margin-bottom: 2px;
+    margin-left: 2px;
+
+    padding: 0;
+    width: calc(100% - 10px);
+
+    text-align: left;
+    font-size: 16px;
+
+    cursor: pointer;
+    display: inline-block;
+  }
+
+  .folder_button:hover {
+    background-color: #444444;
+    border: 1px solid #595959;
+
+    margin-top: 1px;
+    margin-bottom: 1px;
+    margin-left: 0px;
   }
 </style>
